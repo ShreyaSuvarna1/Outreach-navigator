@@ -1,9 +1,11 @@
 import Header from '@/components/dashboard/header';
 import OutreachTable from '@/components/dashboard/outreach-table';
 import UpcomingOutreaches from '@/components/dashboard/upcoming-outreaches';
-import { outreachData } from '@/lib/data';
+import { getOutreaches } from '@/lib/firebase/firestore';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const outreachData = await getOutreaches();
+  
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header />

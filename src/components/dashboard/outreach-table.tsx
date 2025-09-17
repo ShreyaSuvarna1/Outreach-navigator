@@ -10,6 +10,7 @@ import {
   Search,
   CalendarPlus,
   BookPlus,
+  Loader2,
 } from "lucide-react";
 
 import type { Outreach } from "@/lib/types";
@@ -46,6 +47,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { OutreachForm } from "./outreach-form";
+import { saveOutreach, deleteOutreach } from "@/lib/firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+
 
 type OutreachTableProps = {
   records: Outreach[];
@@ -61,6 +66,10 @@ export default function OutreachTable({
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingRecord, setEditingRecord] = React.useState<Outreach | null>(null);
   const [formMode, setFormMode] = React.useState<FormMode>("log");
+  const [isDeleting, setIsDeleting] = React.useState<string | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   const filteredRecords = React.useMemo(() => {
     if (!searchTerm) return records;
@@ -78,27 +87,48 @@ export default function OutreachTable({
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setRecords((prev) => prev.filter((record) => record.id !== id));
+  const handleDelete = async (id: string) => {
+    setIsDeleting(id);
+    try {
+      await deleteOutreach(id);
+      setRecords((prev) => prev.filter((record) => record.id !== id));
+      toast({
+        title: "Outreach Deleted",
+        description: "The outreach record has been removed.",
+      });
+      router.refresh();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete outreach record.",
+      });
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
-  const handleSave = (data: Omit<Outreach, "id" | "status"> & { id?: string }) => {
+  const handleSave = async (data: Omit<Outreach, "id" | "status"> & { id?: string }) => {
     const status: Outreach['status'] = new Date(data.scheduledAt) > new Date() ? 'Scheduled' : 'Completed';
-    if (editingRecord) {
-      // Update existing record
-      const updatedRecord = { ...editingRecord, ...data, status };
-      setRecords((prev) =>
-        prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
-      );
-    } else {
-      // Add new record
-      const newRecord: Outreach = {
-        id: (records.length + 1).toString(),
-        ...data,
-        status,
-      };
-      setRecords((prev) => [newRecord, ...prev]);
+    
+    try {
+      const savedRecord = await saveOutreach({ ...data, status });
+      if (editingRecord) {
+        setRecords((prev) =>
+          prev.map((r) => (r.id === savedRecord.id ? savedRecord : r))
+        );
+      } else {
+        setRecords((prev) => [savedRecord, ...prev]);
+      }
+      router.refresh();
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save outreach record.",
+      });
     }
+
     setIsFormOpen(false);
     setEditingRecord(null);
   };
@@ -197,6 +227,9 @@ export default function OutreachTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
+                       {isDeleting === record.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -213,12 +246,14 @@ export default function OutreachTable({
                           <DropdownMenuItem
                             onClick={() => handleDelete(record.id)}
                             className="text-destructive"
+                            disabled={isDeleting !== null}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -228,7 +263,7 @@ export default function OutreachTable({
                     colSpan={6}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    No results found.
+                    No outreach records yet.
                   </TableCell>
                 </TableRow>
               )}
