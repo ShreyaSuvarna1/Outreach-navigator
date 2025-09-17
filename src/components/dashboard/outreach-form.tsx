@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, isFuture, isPast } from "date-fns";
 import { Calendar as CalendarIcon, Loader2, Sparkles } from "lucide-react";
 
 import type { Outreach } from "@/lib/types";
@@ -44,9 +44,10 @@ type OutreachFormProps = {
   outreach: Outreach | null;
   onSave: (data: OutreachFormValues) => void;
   onCancel: () => void;
+  mode: 'schedule' | 'log' | 'edit';
 };
 
-export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) {
+export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
@@ -62,6 +63,7 @@ export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) 
         topic: "",
         notes: "",
         summary: "",
+        scheduledAt: mode === 'log' ? new Date() : undefined,
       };
 
   const form = useForm<OutreachFormValues>({
@@ -91,6 +93,15 @@ export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) 
   };
 
   async function onSubmit(data: OutreachFormValues) {
+    if (mode === 'schedule' && !isFuture(data.scheduledAt)) {
+      form.setError('scheduledAt', { type: 'manual', message: 'Scheduled date must be in the future.' });
+      return;
+    }
+    if (mode === 'log' && !isPast(data.scheduledAt)) {
+       form.setError('scheduledAt', { type: 'manual', message: 'Log date must be in the past.' });
+       return;
+    }
+
     setIsSaving(true);
     // Simulate async operation
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -99,10 +110,17 @@ export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) 
       scheduledAt: data.scheduledAt.toISOString()
     } as any);
     toast({
-        title: outreach ? "Outreach Updated" : "Outreach Added",
+        title: outreach ? "Outreach Updated" : (mode === 'schedule' ? 'Outreach Scheduled' : 'Outreach Logged'),
         description: "The outreach record has been saved successfully.",
     });
     setIsSaving(false);
+  }
+  
+  const getSaveButtonText = () => {
+    if (isSaving) return "Saving...";
+    if (mode === 'edit') return "Save Changes";
+    if (mode === 'schedule') return "Schedule Outreach";
+    return "Log Outreach";
   }
 
   return (
@@ -180,6 +198,11 @@ export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) 
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
+                      disabled={(date) => {
+                        if (mode === 'schedule') return isPast(date) && !new Date(date).toDateString() === new Date().toDateString();
+                        if (mode === 'log') return isFuture(date);
+                        return false;
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -248,7 +271,7 @@ export function OutreachForm({ outreach, onSave, onCancel }: OutreachFormProps) 
           </Button>
           <Button type="submit" disabled={isSaving}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSaving ? "Saving..." : "Save Changes"}
+            {getSaveButtonText()}
           </Button>
         </div>
       </form>

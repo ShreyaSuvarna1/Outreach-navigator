@@ -8,6 +8,8 @@ import {
   FilePenLine,
   Trash2,
   Search,
+  CalendarPlus,
+  BookPlus,
 } from "lucide-react";
 
 import type { Outreach } from "@/lib/types";
@@ -49,6 +51,8 @@ type OutreachTableProps = {
   records: Outreach[];
 };
 
+type FormMode = "schedule" | "log" | "edit";
+
 export default function OutreachTable({
   records: initialRecords,
 }: OutreachTableProps) {
@@ -56,6 +60,7 @@ export default function OutreachTable({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingRecord, setEditingRecord] = React.useState<Outreach | null>(null);
+  const [formMode, setFormMode] = React.useState<FormMode>("log");
 
   const filteredRecords = React.useMemo(() => {
     if (!searchTerm) return records;
@@ -67,12 +72,8 @@ export default function OutreachTable({
     );
   }, [records, searchTerm]);
 
-  const handleAddNew = () => {
-    setEditingRecord(null);
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = (record: Outreach) => {
+  const handleOpenForm = (mode: FormMode, record: Outreach | null = null) => {
+    setFormMode(mode);
     setEditingRecord(record);
     setIsFormOpen(true);
   };
@@ -114,6 +115,22 @@ export default function OutreachTable({
         return "outline";
     }
   };
+  
+  const getDialogTitle = () => {
+    switch(formMode) {
+      case 'edit': return "Edit Outreach";
+      case 'schedule': return "Schedule New Outreach";
+      case 'log': return "Log New Outreach";
+    }
+  }
+
+  const getDialogDescription = () => {
+     switch(formMode) {
+      case 'edit': return "Update the details of this outreach activity.";
+      case 'schedule': return "Schedule a future outreach activity.";
+      case 'log': return "Log a new outreach activity that has already happened.";
+    }
+  }
 
   return (
     <>
@@ -128,10 +145,16 @@ export default function OutreachTable({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button onClick={handleAddNew} className="gap-1">
-          <PlusCircle className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Outreach</span>
-        </Button>
+        <div className="flex gap-2">
+           <Button onClick={() => handleOpenForm('schedule')} className="gap-1">
+            <CalendarPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Schedule Outreach</span>
+          </Button>
+          <Button onClick={() => handleOpenForm('log')} className="gap-1" variant="secondary">
+            <BookPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Log Outreach</span>
+          </Button>
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -183,7 +206,7 @@ export default function OutreachTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEdit(record)}>
+                          <DropdownMenuItem onClick={() => handleOpenForm('edit', record)}>
                             <FilePenLine className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
@@ -217,19 +240,18 @@ export default function OutreachTable({
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingRecord ? "Edit Outreach Log" : "Add New Outreach Log"}
+              {getDialogTitle()}
             </DialogTitle>
             <DialogDescription>
-              {editingRecord
-                ? "Update the details of this outreach activity."
-                : "Log a new outreach activity, past or future."}
+              {getDialogDescription()}
             </DialogDescription>
           </DialogHeader>
           <OutreachForm
-            key={editingRecord?.id || 'new'}
+            key={editingRecord?.id || formMode}
             outreach={editingRecord}
             onSave={handleSave}
             onCancel={() => setIsFormOpen(false)}
+            mode={formMode}
           />
         </DialogContent>
       </Dialog>
