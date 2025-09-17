@@ -4,7 +4,7 @@ import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, isFuture, isPast } from "date-fns";
+import { format, isFuture, isPast, parse } from "date-fns";
 import { Calendar as CalendarIcon, Loader2, Sparkles } from "lucide-react";
 
 import type { Outreach } from "@/lib/types";
@@ -34,9 +34,19 @@ const formSchema = z.object({
   contactPerson: z.string().min(2, "Contact person is required."),
   topic: z.string().min(3, "Topic is required."),
   scheduledAt: z.date({ required_error: "A date is required." }),
-  notes: z.string().min(10, "Notes must be at least 10 characters.").max(2000),
+  time: z.string().optional(),
+  notes: z.string().optional(),
   summary: z.string().optional(),
+}).refine(data => {
+  if (data.notes && data.notes.length > 0) {
+    return data.notes.length >= 10;
+  }
+  return true;
+}, {
+  message: "Notes must be at least 10 characters.",
+  path: ["notes"],
 });
+
 
 type OutreachFormValues = z.infer<typeof formSchema>;
 
@@ -56,6 +66,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
     ? {
         ...outreach,
         scheduledAt: new Date(outreach.scheduledAt),
+        time: format(new Date(outreach.scheduledAt), "HH:mm"),
       }
     : {
         institution: "",
@@ -64,6 +75,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
         notes: "",
         summary: "",
         scheduledAt: mode === 'log' ? new Date() : undefined,
+        time: mode === 'log' ? format(new Date(), "HH:mm") : '09:00',
       };
 
   const form = useForm<OutreachFormValues>({
@@ -75,7 +87,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
 
   const handleGenerateSummary = async () => {
     setIsGeneratingSummary(true);
-    const { summary, error } = await generateSummaryAction(notesValue);
+    const { summary, error } = await generateSummaryAction(notesValue || "");
     if (error) {
       toast({
         variant: "destructive",
@@ -93,21 +105,30 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
   };
 
   async function onSubmit(data: OutreachFormValues) {
-    if (mode === 'schedule' && !isFuture(data.scheduledAt)) {
-      form.setError('scheduledAt', { type: 'manual', message: 'Scheduled date must be in the future.' });
+    const [hours, minutes] = (data.time || "00:00").split(':').map(Number);
+    const combinedDateTime = new Date(data.scheduledAt);
+    combinedDateTime.setHours(hours, minutes, 0, 0);
+
+    if (mode === 'schedule' && !isFuture(combinedDateTime)) {
+      form.setError('scheduledAt', { type: 'manual', message: 'Scheduled date and time must be in the future.' });
       return;
     }
-    if (mode === 'log' && !isPast(data.scheduledAt)) {
-       form.setError('scheduledAt', { type: 'manual', message: 'Log date must be in the past.' });
+    if (mode === 'log' && !isPast(combinedDateTime)) {
+       form.setError('scheduledAt', { type: 'manual', message: 'Log date and time must be in the past.' });
        return;
     }
+    
+    if (mode !== 'schedule' && (!data.notes || data.notes.length < 10)) {
+        form.setError('notes', { type: 'manual', message: 'Notes must be at least 10 characters.' });
+        return;
+    }
+
 
     setIsSaving(true);
-    // Simulate async operation
     await new Promise(resolve => setTimeout(resolve, 500));
     onSave({
       ...data,
-      scheduledAt: data.scheduledAt.toISOString()
+      scheduledAt: combinedDateTime.toISOString()
     } as any);
     toast({
         title: outreach ? "Outreach Updated" : (mode === 'schedule' ? 'Outreach Scheduled' : 'Outreach Logged'),
@@ -168,102 +189,125 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="scheduledAt"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+           <div className="grid grid-cols-2 gap-2">
+             <FormField
+                control={form.control}
+                name="scheduledAt"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => {
+                            if (mode === 'schedule') return isPast(date) && new Date(date).toDateString() !== new Date().toDateString();
+                            if (mode === 'log') return isFuture(date);
+                            return false;
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time</FormLabel>
                     <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
+                      <Input type="time" {...field} />
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) => {
-                        if (mode === 'schedule') return isPast(date) && !new Date(date).toDateString() === new Date().toDateString();
-                        if (mode === 'log') return isFuture(date);
-                        return false;
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+           </div>
         </div>
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Summarize the conversation and next steps..."
-                  className="resize-y min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="summary"
-          render={({ field }) => (
-             <FormItem>
-                <div className="flex items-center justify-between">
-                    <FormLabel>AI Summary</FormLabel>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleGenerateSummary}
-                        disabled={isGeneratingSummary || !notesValue}
-                    >
-                        {isGeneratingSummary ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="mr-2 h-4 w-4" />
-                        )}
-                        Generate Summary
-                    </Button>
-                </div>
-                <FormControl>
+
+        {mode !== 'schedule' && (
+          <>
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
                     <Textarea
-                        readOnly
-                        placeholder="AI-generated summary will appear here..."
-                        className="resize-none bg-muted/50"
-                        {...field}
+                      placeholder="Summarize the conversation and next steps..."
+                      className="resize-y min-h-[100px]"
+                      {...field}
+                      value={field.value || ''}
                     />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="summary"
+              render={({ field }) => (
+                 <FormItem>
+                    <div className="flex items-center justify-between">
+                        <FormLabel>AI Summary</FormLabel>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleGenerateSummary}
+                            disabled={isGeneratingSummary || !notesValue}
+                        >
+                            {isGeneratingSummary ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="mr-2 h-4 w-4" />
+                            )}
+                            Generate Summary
+                        </Button>
+                    </div>
+                    <FormControl>
+                        <Textarea
+                            readOnly
+                            placeholder="AI-generated summary will appear here..."
+                            className="resize-none bg-muted/50"
+                            {...field}
+                            value={field.value || ''}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
