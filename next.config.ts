@@ -1,23 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
-  serverExternalPackages: ["@firebase/app-check-node"],
+    images: {
+        remotePatterns: [
+          {
+            protocol: 'https',
+            hostname: 'picsum.photos',
+            port: '',
+            pathname: '/**',
+          },
+        ],
+    },
 };
 
 export default nextConfig;
