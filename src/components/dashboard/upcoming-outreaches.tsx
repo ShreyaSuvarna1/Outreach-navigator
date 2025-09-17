@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format, isFuture } from "date-fns";
-import { CalendarClock, Info } from "lucide-react";
+import { CalendarClock, Info, Clock } from "lucide-react";
 
 import type { Outreach } from "@/lib/types";
 import {
@@ -84,6 +84,13 @@ export default function UpcomingOutreaches({
                         <p>
                           <span className="font-semibold">Date:</span>{" "}
                           {format(new Date(record.scheduledAt), "PPP")}
+                        </p>
+                      </div>
+                       <div className="flex items-start gap-2">
+                        <Clock className="h-4 w-4 mt-1 text-muted-foreground" />
+                        <p>
+                          <span className="font-semibold">Time:</span>{" "}
+                          {format(new Date(record.scheduledAt), "p")}
                         </p>
                       </div>
                     </CardContent>
