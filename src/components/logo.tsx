@@ -10,14 +10,8 @@ const Logo = (props: React.SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <rect width="40" height="40" rx="8" fill="hsl(var(--primary))" />
-    <path
-      d="M12 28V12H20V14.5H14.5V19H19.5V21.5H14.5V28H12Z"
-      fill="hsl(var(--primary-foreground))"
-    />
-    <path
-      d="M22.5 28V12H28V28H25.5V14.5H22.5V28Z"
-      fill="hsl(var(--primary-foreground))"
-    />
+    <circle cx="20" cy="14" r="2.5" fill="hsl(var(--primary-foreground))" />
+    <rect x="17.5" y="20" width="5" height="10" rx="1.5" fill="hsl(var(--primary-foreground))" />
   </svg>
 );
 
