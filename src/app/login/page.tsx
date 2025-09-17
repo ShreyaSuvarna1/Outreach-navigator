@@ -20,7 +20,7 @@ export default function LoginPage() {
           <div className="mb-4 inline-block">
              <Logo />
           </div>
-          <CardTitle className="text-2xl">Welcome to OutreachZen</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Outreach Navigator</CardTitle>
           <CardDescription>
             Enter your credentials to access your company's outreach records.
           </CardDescription>

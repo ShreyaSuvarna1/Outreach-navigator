@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'OutreachZen',
+  title: 'Outreach Navigator',
   description: 'Navigate your outreach with clarity and intelligence.',
 };
 

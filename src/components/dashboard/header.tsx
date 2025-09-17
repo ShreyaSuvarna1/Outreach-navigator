@@ -20,7 +20,7 @@ export default function Header() {
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <Link href="/" className="flex items-center gap-2 font-semibold">
         <Logo />
-        <span className="text-lg">OutreachZen</span>
+        <span className="text-lg">Outreach Navigator</span>
       </Link>
       <div className="ml-auto flex items-center gap-4">
         <DropdownMenu>
