@@ -14,5 +14,6 @@ export const outreachData: Outreach[] = [
     scheduledAt: futureDate.toISOString(),
     status: 'Scheduled',
     summary: '',
+    contact: 'alan.grant@dino.com',
   },
 ];

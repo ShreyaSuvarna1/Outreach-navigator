@@ -32,6 +32,7 @@ import { generateSummaryAction } from "@/app/actions/outreach";
 const formSchema = z.object({
   institution: z.string().min(2, "Institution is required."),
   contactPerson: z.string().min(2, "Contact person is required."),
+  contact: z.string().optional(),
   topic: z.string().min(3, "Topic is required."),
   scheduledAt: z.date({ required_error: "A date is required." }),
   time: z.string().optional(),
@@ -71,6 +72,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
     : {
         institution: "",
         contactPerson: "",
+        contact: "",
         topic: "",
         notes: "",
         summary: "",
@@ -176,7 +178,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
           />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField
+           <FormField
             control={form.control}
             name="topic"
             render={({ field }) => (
@@ -189,7 +191,22 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
               </FormItem>
             )}
           />
-           <div className="grid grid-cols-2 gap-2">
+          {mode !== 'schedule' ? (
+            <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact (Email/Phone)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., aname@example.com" {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
              <FormField
                 control={form.control}
                 name="scheduledAt"
@@ -247,7 +264,69 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
                 )}
               />
            </div>
+          )}
         </div>
+        
+        {mode !== 'schedule' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+             <FormField
+                control={form.control}
+                name="scheduledAt"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => {
+                            if (mode === 'schedule') return isPast(date) && new Date(date).toDateString() !== new Date().toDateString();
+                            if (mode === 'log') return isFuture(date);
+                            return false;
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+          </div>
+        )}
 
         {mode !== 'schedule' && (
           <>

@@ -7,4 +7,5 @@ export type Outreach = {
   scheduledAt: string; // ISO string format
   status: 'Scheduled' | 'Completed' | 'Cancelled';
   summary?: string;
+  contact?: string;
 };
