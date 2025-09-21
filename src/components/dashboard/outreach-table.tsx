@@ -108,12 +108,12 @@ export default function OutreachTable({
     }
   };
 
-  const handleSave = async (data: Omit<Outreach, 'id' | 'status' | 'scheduledAt'> & { scheduledAt: Date, id?: string }) => {
+  const handleSave = async (data: Omit<Outreach, 'id' | 'status'> & { id?: string }) => {
     const status: Outreach['status'] = new Date(data.scheduledAt) > new Date() ? 'Scheduled' : 'Completed';
     
     const outreachData: Omit<Outreach, 'id'> & { id?: string } = {
       ...data,
-      scheduledAt: data.scheduledAt.toISOString(),
+      scheduledAt: new Date(data.scheduledAt).toISOString(),
       notes: data.notes ?? '',
       summary: data.summary ?? '',
       contact: data.contact ?? '',
