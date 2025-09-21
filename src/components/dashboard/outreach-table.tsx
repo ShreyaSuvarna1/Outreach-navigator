@@ -108,11 +108,12 @@ export default function OutreachTable({
     }
   };
 
-  const handleSave = async (data: Omit<Outreach, 'id' | 'status'> & { id?: string }) => {
+  const handleSave = async (data: Omit<Outreach, 'id' | 'status' | 'scheduledAt'> & { scheduledAt: Date, id?: string }) => {
     const status: Outreach['status'] = new Date(data.scheduledAt) > new Date() ? 'Scheduled' : 'Completed';
     
-    const outreachData = {
+    const outreachData: Omit<Outreach, 'id'> & { id?: string } = {
       ...data,
+      scheduledAt: data.scheduledAt.toISOString(),
       notes: data.notes ?? '',
       summary: data.summary ?? '',
       contact: data.contact ?? '',
@@ -227,7 +228,7 @@ export default function OutreachTable({
                     </TableCell>
                     <TableCell>{record.topic}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {format(new Date(record.scheduledAt), "PPP")}
+                       {format(new Date(record.scheduledAt), "PPP p")}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant={getBadgeVariant(record.status)}>
@@ -292,7 +293,7 @@ export default function OutreachTable({
           <OutreachForm
             key={editingRecord?.id || formMode}
             outreach={editingRecord}
-            onSave={handleSave}
+            onSave={handleSave as any}
             onCancel={() => setIsFormOpen(false)}
             mode={formMode}
           />
