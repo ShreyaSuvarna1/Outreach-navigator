@@ -146,6 +146,12 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
     return "Log Outreach";
   }
 
+  const calendarDisabledCheck = (date: Date) => {
+    if (mode === 'schedule') return isPast(date) && new Date(date).toDateString() !== new Date().toDateString();
+    if (mode === 'log') return isFuture(date);
+    return false;
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -237,11 +243,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => {
-                            if (mode === 'schedule') return isPast(date) && new Date(date).toDateString() !== new Date().toDateString();
-                            if (mode === 'log') return isFuture(date);
-                            return false;
-                          }}
+                          disabled={calendarDisabledCheck}
                           initialFocus
                         />
                       </PopoverContent>
@@ -299,11 +301,7 @@ export function OutreachForm({ outreach, onSave, onCancel, mode }: OutreachFormP
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => {
-                            if (mode === 'schedule') return isPast(date) && new Date(date).toDateString() !== new Date().toDateString();
-                            if (mode === 'log') return isFuture(date);
-                            return false;
-                          }}
+                          disabled={calendarDisabledCheck}
                           initialFocus
                         />
                       </PopoverContent>
