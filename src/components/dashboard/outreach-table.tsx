@@ -108,11 +108,19 @@ export default function OutreachTable({
     }
   };
 
-  const handleSave = async (data: Omit<Outreach, "id" | "status"> & { id?: string }) => {
+  const handleSave = async (data: Omit<Outreach, 'id' | 'status'> & { id?: string }) => {
     const status: Outreach['status'] = new Date(data.scheduledAt) > new Date() ? 'Scheduled' : 'Completed';
     
+    const outreachData = {
+      ...data,
+      notes: data.notes ?? '',
+      summary: data.summary ?? '',
+      contact: data.contact ?? '',
+      status
+    }
+
     try {
-      const savedRecord = await saveOutreach({ ...data, status });
+      const savedRecord = await saveOutreach(outreachData);
       if (editingRecord) {
         setRecords((prev) =>
           prev.map((r) => (r.id === savedRecord.id ? savedRecord : r))
